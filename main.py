@@ -5,6 +5,7 @@ class World:
     self.rows = x
     self.cols = y
     self.cells = [[0]*x for i in range(y)]
+    self.lifeforms = []
 
   def print_world(self):
     for rows in self.cells:
@@ -20,7 +21,7 @@ class World:
         #print(count, end = "")
         if (count == 3 and old_cells[x][y] == 0) or ((count > 3 or count < 2) and old_cells[x][y] == 1):
           self.toggle_cell(x, y,self.cells)
-      #print()
+      self.lifeforms = self.life_check()
 
   def neighbor_count(self, x, y, c):
     neighbors = []
@@ -33,7 +34,6 @@ class World:
           #print(x,y,i,j)
           neighbors.append([i,j])
     return neighbors
-
 
   def toggle_cell(self, x, y, cells):
      cells[x][y] = 1 - cells[x][y]
@@ -50,7 +50,6 @@ class World:
           lifeforms.append(form)
     return lifeforms
             
-
   def neighbor_check(self, x, y, buf, form):
     neighbors = self.neighbor_count(x, y, buf)
     for neighbor in neighbors:
@@ -59,6 +58,31 @@ class World:
       self.neighbor_check(neighbor[0], neighbor[1], buf, form)
     else:
       return form
+
+  def delocalize(self, lifeforms):
+    buf = copy.deepcopy(lifeforms)
+    for form in buf:
+      xmin = self.cols
+      ymin = self.rows
+      for coord in form:
+        xmin = coord[0] if coord[0] < xmin else xmin
+        ymin = coord[1] if coord[1] < ymin else ymin
+      for coord in form:
+        coord[0] -= xmin
+        coord[1] -= ymin
+    return [i for n, i in enumerate(buf) if i not in buf[:n]]
+        
+  def time_track_forms(self, lifeforms_ta, lifeforms_tb):
+    for form_tb in lifeforms_tb:
+      for form_ta in lifeforms_ta:
+        for cell in form_tb:
+          if cell in form_ta:
+            pass
+            #add to form of ta
+          else:
+            pass
+            #create new form
+
 
 
 
@@ -76,3 +100,4 @@ for x in range(15):
   print()
 #print(world.neighbor_count(2,3,world.cells))
 print(world.life_check())
+print(world.delocalize(world.life_check()))
