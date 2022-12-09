@@ -1,11 +1,10 @@
 import copy
 
 class World:
-  def __init__(self, x, y):
-    self.rows = x
-    self.cols = y
-    self.cells = [[0]*x for i in range(y)]
-    self.lifeforms = []
+  def __init__(self, x = None, y = None, *, cells = None):
+    self.rows = x if x else len(cells[0])
+    self.cols = y if y else  len(cells)
+    self.cells = cells if cells else [[0]*x for i in range(y)]
 
   def print_world(self):
     for rows in self.cells:
@@ -14,47 +13,55 @@ class World:
        print()
 
   def evolve(self):
-    old_cells = copy.deepcopy(self.cells)
-    for x, column in enumerate(old_cells):
+    old_cells = self.copy()
+    for x, column in enumerate(old_cells.cells):
       for y, cell in enumerate(column):
-        count = len(self.neighbor_count(x, y, old_cells))
+        count = len(old_cells.neighbor_count(x, y))
         #print(count, end = "")
-        if (count == 3 and old_cells[x][y] == 0) or ((count > 3 or count < 2) and old_cells[x][y] == 1):
-          self.toggle_cell(x, y,self.cells)
-      self.lifeforms = self.life_check()
+        if (count == 3 and old_cells.cells[x][y] == 0) or ((count > 3 or count < 2) and old_cells.cells[x][y] == 1):
+          self.toggle_cell(x, y)
 
-  def neighbor_count(self, x, y, c):
+  def neighbor_count(self, x, y):
     neighbors = []
     for i in range(x - 1, x + 2):
       for j in range(y - 1, y + 2):
         if i < 0 or i >= self.rows or j < 0 or j >= self.cols or (i == x and j == y):
           continue
         #print(x,y,i,j,c[i][j])
-        if c[i][j] == 1:
+        if self.cells[i][j] == 1:
           #print(x,y,i,j)
           neighbors.append([i,j])
     return neighbors
 
-  def toggle_cell(self, x, y, cells):
-     cells[x][y] = 1 - cells[x][y]
+  def toggle_cell(self, x, y):
+     self.cells[x][y] = 1 - self.cells[x][y]
 
-  def life_check(self):
-    buf = copy.deepcopy(self.cells)
+  def copy(self):
+     return World(cells = copy.deepcopy(self.cells))
+
+
+class Lifebook:
+  def __init__(self, world):
+    self.world = world
+    self.lifeforms = {}
+  
+  def life_check(self, time):
+    buf = self.world.copy()
     lifeforms = []
-    for x, col in enumerate(buf):
+    for x, col in enumerate(buf.cells):
       for y, cell in enumerate(col):
         if cell:
           form = [[x,y]]
-          self.toggle_cell(x,y,buf)
+          buf.toggle_cell(x,y)
           form = self.neighbor_check(x, y, buf, form)
           lifeforms.append(form)
-    return lifeforms
+    self.lifeforms[time] = lifeforms
             
   def neighbor_check(self, x, y, buf, form):
-    neighbors = self.neighbor_count(x, y, buf)
+    neighbors = buf.neighbor_count(x, y)
     for neighbor in neighbors:
       form.append(neighbor)
-      self.toggle_cell(neighbor[0], neighbor[1], buf)
+      buf.toggle_cell(neighbor[0], neighbor[1])
       self.neighbor_check(neighbor[0], neighbor[1], buf, form)
     else:
       return form
@@ -62,8 +69,8 @@ class World:
   def delocalize(self, lifeforms):
     buf = copy.deepcopy(lifeforms)
     for form in buf:
-      xmin = self.cols
-      ymin = self.rows
+      xmin = self.world.cols
+      ymin = self.world.rows
       for coord in form:
         xmin = coord[0] if coord[0] < xmin else xmin
         ymin = coord[1] if coord[1] < ymin else ymin
@@ -90,14 +97,16 @@ class World:
 
 
 world = World(10, 10)
-world.toggle_cell(4,4,world.cells)
-world.toggle_cell(4,5,world.cells)
-world.toggle_cell(4,6,world.cells)
-world.toggle_cell(5,5,world.cells)
+lifebook = Lifebook(world)
+world.toggle_cell(4,4)
+world.toggle_cell(4,5)
+world.toggle_cell(4,6)
+world.toggle_cell(5,5)
 for x in range(15):
-  world.print_world()
-  world.evolve()
+  lifebook.world.print_world()
+  lifebook.world.evolve()
   print()
 #print(world.neighbor_count(2,3,world.cells))
-print(world.life_check())
-print(world.delocalize(world.life_check()))
+lifebook.life_check(0)
+print(lifebook.lifeforms[0])
+print(lifebook.delocalize(lifebook.lifeforms[0]))
